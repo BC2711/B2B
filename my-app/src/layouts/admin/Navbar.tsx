@@ -1,5 +1,24 @@
 import React, { useState, useCallback, memo, useRef, useEffect } from 'react';
-import type { NavbarNotification } from '../../types/InterfaceTypes';
+import { Link } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
+
+// Define types
+interface NavbarNotification {
+    id: number;
+    message: string;
+    read: boolean;
+    time: string;
+    icon: string;
+    iconColor: string;
+}
+
+interface NavbarMessage {
+    id: number;
+    sender: string;
+    content: string;
+    time: string;
+    read: boolean;
+}
 
 interface NavbarProps {
     isCollapsed: boolean;
@@ -7,22 +26,26 @@ interface NavbarProps {
 }
 
 // Custom hook for handling click outside
-const useClickOutside = (ref: React.RefObject<HTMLElement | null>, callback: () => void) => {
+const useClickOutside = (ref: React.RefObject<HTMLElement>, callback: () => void) => {
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
             if (ref.current && !ref.current.contains(event.target as Node)) {
                 callback();
             }
         };
-
         document.addEventListener('mousedown', handleClickOutside);
-        return () => {
-            document.removeEventListener('mousedown', handleClickOutside);
-        };
+        return () => document.removeEventListener('mousedown', handleClickOutside);
     }, [ref, callback]);
 };
 
-// Sample notifications data
+// Animation variants for dropdowns
+const dropdownVariants = {
+    hidden: { opacity: 0, y: -10 },
+    visible: { opacity: 1, y: 0, transition: { duration: 0.2, ease: 'easeOut' } },
+    exit: { opacity: 0, y: -10, transition: { duration: 0.15, ease: 'easeIn' } },
+};
+
+// Sample data (replace with API in production)
 const notifications: NavbarNotification[] = [
     {
         id: 1,
@@ -50,8 +73,7 @@ const notifications: NavbarNotification[] = [
     },
 ];
 
-// Sample messages data
-const messages = [
+const messages: NavbarMessage[] = [
     {
         id: 1,
         sender: 'Sarah Williams',
@@ -68,61 +90,90 @@ const messages = [
     },
 ];
 
-// Memoize to prevent unnecessary re-renders
 const Navbar: React.FC<NavbarProps> = memo(({ isCollapsed, toggleSidebar }) => {
     const [searchQuery, setSearchQuery] = useState('');
     const [showNotifications, setShowNotifications] = useState(false);
     const [showMessages, setShowMessages] = useState(false);
     const [showProfileMenu, setShowProfileMenu] = useState(false);
+    const [notificationList, setNotificationList] = useState(notifications);
+    const [messageList, setMessageList] = useState(messages);
 
-    const notificationsRef = useRef<HTMLElement | null>(null);
-    const messagesRef = useRef<HTMLElement | null>(null);
-    const profileMenuRef = useRef<HTMLElement | null>(null);
+    const notificationsRef = useRef<HTMLElement>(null);
+    const messagesRef = useRef<HTMLElement>(null);
+    const profileMenuRef = useRef<HTMLElement>(null);
 
     // Close dropdowns when clicking outside
     useClickOutside(notificationsRef, () => setShowNotifications(false));
     useClickOutside(messagesRef, () => setShowMessages(false));
     useClickOutside(profileMenuRef, () => setShowProfileMenu(false));
 
-    // Use useCallback to prevent function recreation
+    // Toggle handlers
     const handleNotificationsToggle = useCallback(() => {
         setShowNotifications((prev) => !prev);
-        setShowMessages(false); // Close other dropdowns
+        setShowMessages(false);
         setShowProfileMenu(false);
     }, []);
 
     const handleMessagesToggle = useCallback(() => {
         setShowMessages((prev) => !prev);
-        setShowNotifications(false); // Close other dropdowns
+        setShowNotifications(false);
         setShowProfileMenu(false);
     }, []);
 
     const handleProfileMenuToggle = useCallback(() => {
         setShowProfileMenu((prev) => !prev);
-        setShowNotifications(false); // Close other dropdowns
+        setShowNotifications(false);
         setShowMessages(false);
     }, []);
 
+    // Mark notification as read
+    const markNotificationAsRead = useCallback((id: number) => {
+        setNotificationList((prev) =>
+            prev.map((n) => (n.id === id ? { ...n, read: true } : n)),
+        );
+    }, []);
+
+    // Mark message as read
+    const markMessageAsRead = useCallback((id: number) => {
+        setMessageList((prev) =>
+            prev.map((m) => (m.id === id ? { ...m, read: true } : m)),
+        );
+    }, []);
+
+    // Handle search (placeholder for real search logic)
+    const handleSearch = useCallback(
+        (e: React.ChangeEvent<HTMLInputElement>) => {
+            setSearchQuery(e.target.value);
+            // Add search logic here (e.g., API call)
+            console.log('Searching for:', e.target.value);
+        },
+        [],
+    );
+
     // Calculate unread counts
-    const unreadNotifications = notifications.filter((n) => !n.read).length;
-    const unreadMessages = messages.filter((m) => !m.read).length;
+    const unreadNotifications = notificationList.filter((n) => !n.read).length;
+    const unreadMessages = messageList.filter((m) => !m.read).length;
 
     return (
-        <header className="flex items-center justify-between h-16 px-4 bg-transparent">
+        <header
+            className="flex items-center justify-between h-16 px-4 bg-transparent text-white shadow-md"
+            role="banner"
+            aria-label="Admin navigation"
+        >
             {/* Mobile menu button */}
             <button
-                className="md:hidden p-2 text-gray-600 hover:text-gray-800 focus:outline-none focus:ring-2 focus:ring-indigo-500 rounded-md"
+                className="md:hidden p-2 text-gray-300 hover:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 rounded-md"
                 aria-label="Toggle sidebar menu"
                 onClick={toggleSidebar}
             >
-                <i className="fas fa-bars text-xl" />
+                <i className="fas fa-bars text-xl" aria-hidden="true" />
             </button>
 
             {/* Search and Sidebar Toggle */}
             <div className="flex items-center gap-4 flex-1 max-w-md mx-4 md:mx-6">
                 <button
                     onClick={toggleSidebar}
-                    className="p-2 bg-transparent text-white rounded-lg hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors"
+                    className="hidden md:block p-2 text-gray-300 hover:text-white rounded-lg hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors"
                     aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
                 >
                     <svg
@@ -134,20 +185,11 @@ const Navbar: React.FC<NavbarProps> = memo(({ isCollapsed, toggleSidebar }) => {
                         strokeWidth="2"
                         strokeLinecap="round"
                         strokeLinejoin="round"
-                        className="w-6 h-6"
+                        className={`w-6 h-6 transition-transform ${isCollapsed ? 'rotate-180' : ''}`}
                     >
-                        {isCollapsed ? (
-                            <>
-                                <line x1="18" y1="6" x2="6" y2="18" />
-                                <line x1="6" y1="6" x2="18" y2="18" />
-                            </>
-                        ) : (
-                            <>
-                                <line x1="3" y1="7" x2="21" y2="7" />
-                                <line x1="3" y1="12" x2="21" y2="12" />
-                                <line x1="3" y1="17" x2="21" y2="17" />
-                            </>
-                        )}
+                        <line x1="3" y1="7" x2="21" y2="7" />
+                        <line x1="3" y1="12" x2="21" y2="12" />
+                        <line x1="3" y1="17" x2="21" y2="17" />
                     </svg>
                 </button>
 
@@ -156,10 +198,10 @@ const Navbar: React.FC<NavbarProps> = memo(({ isCollapsed, toggleSidebar }) => {
                         <i className="fas fa-search text-gray-400" aria-hidden="true" />
                     </div>
                     <input
-                        className="w-full py-2 pl-10 pr-3 text-sm bg-gray-100 border-none rounded-lg focus:bg-white focus:ring-2 focus:ring-indigo-500 transition-all"
-                        placeholder="Search..."
+                        className="w-full py-2 pl-10 pr-3 text-sm bg-gray-700 dark:bg-gray-800 text-white border-none rounded-lg focus:ring-2 focus:ring-indigo-500 focus:bg-gray-600 transition-all"
+                        placeholder="Search products or orders..."
                         value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
+                        onChange={handleSearch}
                         aria-label="Search products or orders"
                     />
                 </div>
@@ -170,124 +212,160 @@ const Navbar: React.FC<NavbarProps> = memo(({ isCollapsed, toggleSidebar }) => {
                 {/* Notifications */}
                 <section ref={notificationsRef} className="relative">
                     <button
-                        className="p-2 text-gray-600 hover:text-gray-800 rounded-full focus:outline-none focus:ring-2 focus:ring-indigo-500 relative"
+                        className="p-2 text-gray-300 hover:text-white rounded-full hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 relative"
                         onClick={handleNotificationsToggle}
                         aria-label={`Notifications (${unreadNotifications} unread)`}
                         aria-haspopup="true"
                         aria-expanded={showNotifications}
                     >
-                        <i className="fas fa-bell text-xl" />
+                        <i className="fas fa-bell text-xl" aria-hidden="true" />
                         {unreadNotifications > 0 && (
-                            <span className="absolute top-0 right-0 w-3 h-3 bg-red-500 rounded-full border-2 border-white" />
+                            <span className="absolute top-0 right-0 w-3 h-3 bg-red-500 rounded-full border border-gray-800" />
                         )}
                     </button>
 
-                    {/* Notifications dropdown */}
-                    {showNotifications && (
-                        <div className="absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-xl z-20 max-h-[400px] overflow-y-auto">
-                            <div className="py-2">
-                                <div className="px-4 py-3 border-b border-gray-200">
-                                    <h3 className="text-sm font-semibold text-gray-800">Notifications</h3>
-                                </div>
-                                {notifications.length === 0 ? (
-                                    <div className="px-4 py-3 text-sm text-gray-500">No new notifications</div>
-                                ) : (
-                                    notifications.map((notification) => (
-                                        <div
-                                            key={notification.id}
-                                            className={`px-4 py-3 hover:bg-gray-50 transition-colors ${!notification.read ? 'bg-blue-50' : ''
-                                                }`}
-                                        >
-                                            <div className="flex items-start">
-                                                <div className={`flex-shrink-0 ${notification.iconColor} mt-1`}>
-                                                    <i className={`${notification.icon} text-lg`} aria-hidden="true" />
-                                                </div>
-                                                <div className="ml-3 flex-1">
-                                                    <p className="text-sm text-gray-700">{notification.message}</p>
-                                                    <p className="text-xs text-gray-500 mt-1">{notification.time}</p>
-                                                </div>
-                                                {!notification.read && (
-                                                    <div className="ml-2 flex-shrink-0">
-                                                        <span className="w-2 h-2 bg-blue-500 rounded-full" />
-                                                    </div>
-                                                )}
-                                            </div>
+                    <AnimatePresence>
+                        {showNotifications && (
+                            <motion.div
+                                className="absolute right-0 mt-2 w-80 bg-white dark:bg-gray-800 rounded-lg shadow-xl z-20 max-h-[400px] overflow-y-auto"
+                                variants={dropdownVariants}
+                                initial="hidden"
+                                animate="visible"
+                                exit="exit"
+                            >
+                                <div className="py-2">
+                                    <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-700">
+                                        <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200">
+                                            Notifications
+                                        </h3>
+                                    </div>
+                                    {notificationList.length === 0 ? (
+                                        <div className="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">
+                                            No new notifications
                                         </div>
-                                    ))
-                                )}
-                                <div className="px-4 py-2 border-t border-gray-200 text-center">
-                                    <a
-                                        href="#"
-                                        className="text-sm font-medium text-indigo-600 hover:text-indigo-700 transition-colors"
-                                    >
-                                        View all notifications
-                                    </a>
+                                    ) : (
+                                        notificationList.map((notification) => (
+                                            <button
+                                                key={notification.id}
+                                                className={`w-full px-4 py-3 text-left hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors ${!notification.read ? 'bg-blue-50 dark:bg-blue-900' : ''
+                                                    }`}
+                                                onClick={() => markNotificationAsRead(notification.id)}
+                                                aria-label={`Notification: ${notification.message}`}
+                                            >
+                                                <div className="flex items-start">
+                                                    <div className={`flex-shrink-0 ${notification.iconColor} mt-1`}>
+                                                        <i className={`${notification.icon} text-lg`} aria-hidden="true" />
+                                                    </div>
+                                                    <div className="ml-3 flex-1">
+                                                        <p className="text-sm text-gray-700 dark:text-gray-200">
+                                                            {notification.message}
+                                                        </p>
+                                                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                                            {notification.time}
+                                                        </p>
+                                                    </div>
+                                                    {!notification.read && (
+                                                        <div className="ml-2 flex-shrink-0">
+                                                            <span className="w-2 h-2 bg-blue-500 rounded-full" />
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </button>
+                                        ))
+                                    )}
+                                    <div className="px-4 py-2 border-t border-gray-200 dark:border-gray-700 text-center">
+                                        <Link
+                                            to="/admin/notifications"
+                                            className="text-sm font-medium text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 transition-colors"
+                                            onClick={() => setShowNotifications(false)}
+                                        >
+                                            View all notifications
+                                        </Link>
+                                    </div>
                                 </div>
-                            </div>
-                        </div>
-                    )}
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
                 </section>
 
                 {/* Messages */}
                 <section ref={messagesRef} className="relative">
                     <button
-                        className="p-2 text-gray-600 hover:text-gray-800 rounded-full focus:outline-none focus:ring-2 focus:ring-indigo-500 relative"
+                        className="p-2 text-gray-300 hover:text-white rounded-full hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 relative"
                         onClick={handleMessagesToggle}
                         aria-label={`Messages (${unreadMessages} unread)`}
                         aria-haspopup="true"
                         aria-expanded={showMessages}
                     >
-                        <i className="fas fa-envelope text-xl" />
+                        <i className="fas fa-envelope text-xl" aria-hidden="true" />
                         {unreadMessages > 0 && (
-                            <span className="absolute top-0 right-0 w-3 h-3 bg-red-500 rounded-full border-2 border-white" />
+                            <span className="absolute top-0 right-0 w-3 h-3 bg-red-500 rounded-full border border-gray-800" />
                         )}
                     </button>
 
-                    {/* Messages dropdown */}
-                    {showMessages && (
-                        <div className="absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-xl z-20 max-h-[400px] overflow-y-auto">
-                            <div className="py-2">
-                                <div className="px-4 py-3 border-b border-gray-200">
-                                    <h3 className="text-sm font-semibold text-gray-800">Messages</h3>
-                                </div>
-                                {messages.length === 0 ? (
-                                    <div className="px-4 py-3 text-sm text-gray-500">No new messages</div>
-                                ) : (
-                                    messages.map((message) => (
-                                        <div
-                                            key={message.id}
-                                            className={`px-4 py-3 hover:bg-gray-50 transition-colors ${!message.read ? 'bg-blue-50' : ''
-                                                }`}
-                                        >
-                                            <div className="flex items-start">
-                                                <div className="flex-shrink-0 text-green-500 mt-1">
-                                                    <i className="fas fa-envelope text-lg" aria-hidden="true" />
-                                                </div>
-                                                <div className="ml-3 flex-1">
-                                                    <p className="text-sm font-medium text-gray-800">{message.sender}</p>
-                                                    <p className="text-sm text-gray-700 truncate">{message.content}</p>
-                                                    <p className="text-xs text-gray-500 mt-1">{message.time}</p>
-                                                </div>
-                                                {!message.read && (
-                                                    <div className="ml-2 flex-shrink-0">
-                                                        <span className="w-2 h-2 bg-blue-500 rounded-full" />
-                                                    </div>
-                                                )}
-                                            </div>
+                    <AnimatePresence>
+                        {showMessages && (
+                            <motion.div
+                                className="absolute right-0 mt-2 w-80 bg-white dark:bg-gray-800 rounded-lg shadow-xl z-20 max-h-[400px] overflow-y-auto"
+                                variants={dropdownVariants}
+                                initial="hidden"
+                                animate="visible"
+                                exit="exit"
+                            >
+                                <div className="py-2">
+                                    <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-700">
+                                        <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200">Messages</h3>
+                                    </div>
+                                    {messageList.length === 0 ? (
+                                        <div className="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">
+                                            No new messages
                                         </div>
-                                    ))
-                                )}
-                                <div className="px-4 py-2 border-t border-gray-200 text-center">
-                                    <a
-                                        href="#"
-                                        className="text-sm font-medium text-indigo-600 hover:text-indigo-700 transition-colors"
-                                    >
-                                        View all messages
-                                    </a>
+                                    ) : (
+                                        messageList.map((message) => (
+                                            <button
+                                                key={message.id}
+                                                className={`w-full px-4 py-3 text-left hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors ${!message.read ? 'bg-blue-50 dark:bg-blue-900' : ''
+                                                    }`}
+                                                onClick={() => markMessageAsRead(message.id)}
+                                                aria-label={`Message from ${message.sender}: ${message.content}`}
+                                            >
+                                                <div className="flex items-start">
+                                                    <div className="flex-shrink-0 text-green-500 mt-1">
+                                                        <i className="fas fa-envelope text-lg" aria-hidden="true" />
+                                                    </div>
+                                                    <div className="ml-3 flex-1">
+                                                        <p className="text-sm font-medium text-gray-800 dark:text-gray-200">
+                                                            {message.sender}
+                                                        </p>
+                                                        <p className="text-sm text-gray-700 dark:text-gray-200 truncate">
+                                                            {message.content}
+                                                        </p>
+                                                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                                            {message.time}
+                                                        </p>
+                                                    </div>
+                                                    {!message.read && (
+                                                        <div className="ml-2 flex-shrink-0">
+                                                            <span className="w-2 h-2 bg-blue-500 rounded-full" />
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </button>
+                                        ))
+                                    )}
+                                    <div className="px-4 py-2 border-t border-gray-200 dark:border-gray-700 text-center">
+                                        <Link
+                                            to="/admin/messages"
+                                            className="text-sm font-medium text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 transition-colors"
+                                            onClick={() => setShowMessages(false)}
+                                        >
+                                            View all messages
+                                        </Link>
+                                    </div>
                                 </div>
-                            </div>
-                        </div>
-                    )}
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
                 </section>
 
                 {/* User dropdown */}
@@ -299,59 +377,62 @@ const Navbar: React.FC<NavbarProps> = memo(({ isCollapsed, toggleSidebar }) => {
                         aria-haspopup="true"
                         aria-expanded={showProfileMenu}
                     >
-                        {/* <img
-                            className="w-8 h-8 rounded-full border border-gray-200"
-                            src="https://randomuser.me/api/portraits/men/32.jpg"
+                        <img
+                            className="w-9 h-9 rounded-full object-cover"
+                            src="/src/assets/images/oceans.jpg"
                             alt="User profile"
                             loading="lazy"
-                        /> */}
-                        <img
-                                className="w-9 h-9 rounded-full object-cover"
-                                src="/src/assets/images/oceans.jpg"
-                                alt="User profile"
-                                loading="lazy"
-                            />
+                        />
                     </button>
 
-                    {/* Profile dropdown */}
-                    {showProfileMenu && (
-                        <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-xl z-20">
-                            <div className="py-2">
-                                <div className="px-4 py-3 border-b border-gray-200">
-                                    <p className="text-sm text-gray-600">Signed in as</p>
-                                    <p className="text-sm font-medium text-gray-900 truncate">
-                                        john.doe@example.com
-                                    </p>
+                    <AnimatePresence>
+                        {showProfileMenu && (
+                            <motion.div
+                                className="absolute right-0 mt-2 w-56 bg-white dark:bg-gray-800 rounded-lg shadow-xl z-20"
+                                variants={dropdownVariants}
+                                initial="hidden"
+                                animate="visible"
+                                exit="exit"
+                            >
+                                <div className="py-2">
+                                    <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-700">
+                                        <p className="text-sm text-gray-600 dark:text-gray-400">Signed in as</p>
+                                        <p className="text-sm font-medium text-gray-900 dark:text-gray-200 truncate">
+                                            john.doe@example.com
+                                        </p>
+                                    </div>
+                                    <Link
+                                        to="/admin/profile"
+                                        className="block px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                                        onClick={() => setShowProfileMenu(false)}
+                                    >
+                                        Your Profile
+                                    </Link>
+                                    <Link
+                                        to="/admin/settings"
+                                        className="block px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                                        onClick={() => setShowProfileMenu(false)}
+                                    >
+                                        Settings
+                                    </Link>
+                                    <div className="border-t border-gray-200 dark:border-gray-700" />
+                                    <Link
+                                        to="/logout"
+                                        className="block px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                                        onClick={() => setShowProfileMenu(false)}
+                                    >
+                                        Sign out
+                                    </Link>
                                 </div>
-                                <a
-                                    href="#"
-                                    className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
-                                >
-                                    Your Profile
-                                </a>
-                                <a
-                                    href="#"
-                                    className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
-                                >
-                                    Settings
-                                </a>
-                                <div className="border-t border-gray-200" />
-                                <a
-                                    href="#"
-                                    className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
-                                >
-                                    Sign out
-                                </a>
-                            </div>
-                        </div>
-                    )}
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
                 </section>
             </div>
         </header>
     );
 });
 
-// Add display name for better debugging
 Navbar.displayName = 'Navbar';
 
 export default Navbar;

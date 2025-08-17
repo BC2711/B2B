@@ -1,5 +1,5 @@
 import React, { useState, useCallback, memo } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     FaChartBar,
@@ -12,11 +12,15 @@ import {
     FaBoxes,
     FaSignOutAlt,
     FaChevronDown,
-    FaCaretDown,
-    FaCat,
 } from 'react-icons/fa';
-import { FaCableCar } from 'react-icons/fa6';
 import { AiFillAlert } from 'react-icons/ai';
+
+// Define types for navigation items
+interface NavChildItem {
+    name: string;
+    href: string;
+    icon?: React.ReactNode;
+}
 
 interface NavItem {
     name: string;
@@ -25,18 +29,26 @@ interface NavItem {
     children?: NavChildItem[];
 }
 
-interface NavChildItem {
-    name: string;
-    href: string;
-    icon?: React.ReactNode;
-}
-
 interface SidebarProps {
     isCollapsed: boolean;
+    onToggle?: () => void; // Optional callback for toggling sidebar
 }
 
-// Memoize to prevent unnecessary re-renders
-const Sidebar: React.FC<SidebarProps> = memo(({ isCollapsed }) => {
+// Animation variants for sidebar
+const sidebarVariants = {
+    expanded: { width: 256 },
+    collapsed: { width: 80 },
+};
+
+// Animation variants for submenus
+const submenuVariants = {
+    hidden: { height: 0, opacity: 0 },
+    visible: { height: 'auto', opacity: 1, transition: { duration: 0.3, ease: 'easeInOut' } },
+    exit: { height: 0, opacity: 0, transition: { duration: 0.2, ease: 'easeInOut' } },
+};
+
+const Sidebar: React.FC<SidebarProps> = memo(({ isCollapsed, onToggle }) => {
+    const location = useLocation();
     const [expandedMenus, setExpandedMenus] = useState<Record<string, boolean>>({
         orders: false,
         inventory: false,
@@ -45,6 +57,7 @@ const Sidebar: React.FC<SidebarProps> = memo(({ isCollapsed }) => {
         settings: false,
     });
 
+    // Navigation items
     const navItems: NavItem[] = [
         {
             name: 'Dashboard',
@@ -65,8 +78,8 @@ const Sidebar: React.FC<SidebarProps> = memo(({ isCollapsed }) => {
             icon: <FaWarehouse size={18} />,
             children: [
                 { name: 'Products', href: '/admin/products', icon: <FaProductHunt size={18} /> },
-                { name: 'Categories', href: '/admin/categories',icon: <FaCat size={18} /> },
-                { name: 'Stock Alerts', href: '/admin/stock-alerts',icon: <AiFillAlert size={18} /> },
+                { name: 'Categories', href: '/admin/categories', icon: <FaBoxes size={18} /> },
+                { name: 'Stock Alerts', href: '/admin/stock-alerts', icon: <AiFillAlert size={18} /> },
             ],
         },
         {
@@ -95,168 +108,169 @@ const Sidebar: React.FC<SidebarProps> = memo(({ isCollapsed }) => {
         },
     ];
 
-    // Use useCallback to prevent function recreation
+    // Handle menu toggle
     const toggleMenu = useCallback((menuName: string) => {
-        setExpandedMenus((prev) => {
-            const newState: Record<string, boolean> = {};
-            // Close all menus
-            Object.keys(prev).forEach((key) => {
-                newState[key] = false;
-            });
-            // Toggle the clicked menu
-            newState[menuName.toLowerCase()] = !prev[menuName.toLowerCase()];
-            return newState;
-        });
+        setExpandedMenus((prev) => ({
+            ...prev,
+            [menuName.toLowerCase()]: !prev[menuName.toLowerCase()],
+        }));
     }, []);
 
-    // Check if current route matches href or any child href
-    const isActive = useCallback((href: string, children?: NavChildItem[]) => {
-        const currentPath = window.location.pathname;
-        if (href && currentPath === href) return true;
-        if (children) {
-            return children.some((child) => currentPath === child.href);
-        }
-        return false;
-    }, []);
+    // Check if a route is active
+    const isActive = useCallback(
+        (href: string, children?: NavChildItem[]) => {
+            const currentPath = location.pathname;
+            if (href && currentPath === href) return true;
+            if (children) {
+                return children.some((child) => currentPath === child.href);
+            }
+            return false;
+        },
+        [location.pathname],
+    );
 
     return (
         <motion.div
-            className="flex flex-col h-screen bg-transparent"
-            initial={{ width: isCollapsed ? 80 : 256 }}
-            animate={{ width: isCollapsed ? 80 : 256 }}
+            className="flex flex-col h-screen bg-transparent text-white shadow-lg"
+            variants={sidebarVariants}
+            initial={isCollapsed ? 'collapsed' : 'expanded'}
+            animate={isCollapsed ? 'collapsed' : 'expanded'}
             transition={{ duration: 0.3, ease: 'easeInOut' }}
             role="navigation"
+            aria-label="Admin sidebar"
         >
             {/* Logo and Collapse Button */}
             <div className="flex items-center justify-between h-16 px-4 bg-transparent">
                 <motion.div
-                    className={`flex items-center py-4 ${isCollapsed ? 'ml-[-20px]':''} `}
-                    initial={{ opacity: isCollapsed ? 0 : 1 }}
-                    animate={{ opacity: isCollapsed ? 0 : 1 }}
+                    className="flex items-center"
+                    initial={{ opacity: isCollapsed ? 0 : 1, x: isCollapsed ? -20 : 0 }}
+                    animate={{ opacity: isCollapsed ? 0 : 1, x: isCollapsed ? -20 : 0 }}
                     transition={{ duration: 0.2 }}
                 >
-                    <FaBoxes size={18} color="indigo" />
+                    <FaBoxes size={24} className="text-indigo-400" />
                     {!isCollapsed && (
-                        <span className="text-xl ml-2 font-semibold text-white">WholesalePro</span>
+                        <span className="ml-3 text-xl font-semibold text-white">WholesalePro</span>
                     )}
                 </motion.div>
-                {isCollapsed && (
-                    <motion.div
-                        className="flex justify-center w-full"
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        transition={{ duration: 0.2 }}
+                {onToggle && (
+                    <button
+                        onClick={onToggle}
+                        className="p-2 rounded-lg hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
                     >
-                        <FaBoxes size={18} color="indigo" />
-                    </motion.div>
+                        <FaChevronDown
+                            size={16}
+                            className={`text-white transition-transform ${isCollapsed ? 'rotate-90' : '-rotate-90'}`}
+                        />
+                    </button>
                 )}
             </div>
 
             {/* Navigation */}
-            <div className="flex flex-col flex-grow px-2 py-4 overflow-y-auto">
-                <nav className="flex-1 space-y-1" aria-label="Sidebar navigation">
-                    {navItems.map((item) => (
-                        <div key={item.name} className="space-y-1">
-                            {item.children ? (
-                                <>
-                                    <button
-                                        onClick={() => toggleMenu(item.name)}
-                                        className={`flex items-center w-full px-3 py-2.5 text-sm font-medium rounded-lg hover:bg-gray-500 hover:bg-opacity-30 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors duration-200 ${isActive(item.href || '', item.children)
-                                                ? 'text-white bg-gray-500 bg-opacity-30'
-                                                : 'text-white'
-                                            } ${isCollapsed ? 'justify-center' : 'justify-between'}`}
-                                        aria-expanded={expandedMenus[item.name.toLowerCase()]}
-                                        aria-label={`${item.name} menu`}
-                                    >
-                                        <div
-                                            className={`flex items-center ${isCollapsed ? 'justify-center' : 'space-x-3'
-                                                }`}
+            <nav className="flex-1 px-2 py-4 overflow-y-auto space-y-1" aria-label="Sidebar navigation">
+                {navItems.map((item) => (
+                    <div key={item.name} className="space-y-1">
+                        {item.children ? (
+                            <>
+                                <button
+                                    onClick={() => toggleMenu(item.name)}
+                                    className={`
+                    flex items-center w-full px-3 py-2.5 text-sm font-medium rounded-lg 
+                    transition-colors duration-200
+                    focus:outline-none focus:ring-2 focus:ring-indigo-500
+                    ${isActive(item.href || '', item.children)
+                                            ? 'bg-indigo-600 text-white'
+                                            : 'text-gray-200 hover:bg-gray-700 hover:text-white'}
+                    ${isCollapsed ? 'justify-center' : 'justify-between'}
+                  `}
+                                    aria-expanded={expandedMenus[item.name.toLowerCase()]}
+                                    aria-label={`${item.name} menu`}
+                                >
+                                    <div className={`flex items-center ${isCollapsed ? 'justify-center' : 'space-x-3'}`}>
+                                        <span
+                                            className={isActive(item.href || '', item.children) ? 'text-white' : 'text-gray-300'}
                                         >
-                                            <span
-                                                className={`${isActive(item.href || '', item.children)
-                                                        ? 'text-gray-600'
-                                                        : 'text-white'
-                                                    }`}
-                                            >
-                                                {item.icon}
-                                            </span>
-                                            {!isCollapsed && <span>{item.name}</span>}
-                                        </div>
-                                        {!isCollapsed && (
+                                            {item.icon}
+                                        </span>
+                                        {!isCollapsed && <span>{item.name}</span>}
+                                    </div>
+                                    {!isCollapsed && (
+                                        <motion.div
+                                            animate={{ rotate: expandedMenus[item.name.toLowerCase()] ? 180 : 0 }}
+                                            transition={{ duration: 0.2 }}
+                                        >
+                                            <FaChevronDown size={12} className="text-gray-300" />
+                                        </motion.div>
+                                    )}
+                                </button>
+                                {!isCollapsed && (
+                                    <AnimatePresence>
+                                        {expandedMenus[item.name.toLowerCase()] && (
                                             <motion.div
-                                                animate={{ rotate: expandedMenus[item.name.toLowerCase()] ? 180 : 0 }}
-                                                transition={{ duration: 0.2 }}
+                                                variants={submenuVariants}
+                                                initial="hidden"
+                                                animate="visible"
+                                                exit="exit"
+                                                className="pl-8 space-y-1"
                                             >
-                                                <FaChevronDown color="white" size={12} />
+                                                {item.children.map((child) => (
+                                                    <Link
+                                                        key={child.name}
+                                                        to={child.href}
+                                                        className={`
+                              flex items-center px-3 py-2 text-sm rounded-lg 
+                              transition-colors duration-200
+                              focus:outline-none focus:ring-2 focus:ring-indigo-500
+                              ${isActive(child.href)
+                                                                ? 'text-white bg-indigo-500'
+                                                                : 'text-gray-300 hover:bg-gray-700 hover:text-white'}
+                            `}
+                                                        aria-label={child.name}
+                                                    >
+                                                        {child.icon ? (
+                                                            <span
+                                                                className={`mr-2 ${isActive(child.href) ? 'text-white' : 'text-gray-400'}`}
+                                                            >
+                                                                {child.icon}
+                                                            </span>
+                                                        ) : (
+                                                            <span
+                                                                className={`w-1.5 h-1.5 mr-2 rounded-full ${isActive(child.href) ? 'bg-white' : 'bg-gray-400'
+                                                                    }`}
+                                                            />
+                                                        )}
+                                                        {child.name}
+                                                    </Link>
+                                                ))}
                                             </motion.div>
                                         )}
-                                    </button>
-                                    {!isCollapsed && (
-                                        <AnimatePresence>
-                                            {expandedMenus[item.name.toLowerCase()] && (
-                                                <motion.div
-                                                    className="pl-11 space-y-1"
-                                                    initial={{ height: 0, opacity: 0 }}
-                                                    animate={{ height: 'auto', opacity: 1 }}
-                                                    exit={{ height: 0, opacity: 0 }}
-                                                    transition={{ duration: 0.3, ease: 'easeInOut' }}
-                                                >
-                                                    {item.children.map((child) => (
-                                                        <Link
-                                                            key={child.name}
-                                                            to={child.href}
-                                                            className={`flex items-center px-3 py-2 text-sm rounded-lg hover:bg-gray-500 hover:bg-opacity-30 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors duration-200 ${isActive(child.href)
-                                                                    ? 'text-white font-medium'
-                                                                    : 'text-white'
-                                                                }`}
-                                                            aria-label={child.name}
-                                                        >
-                                                            {child.icon ? (
-                                                                <span
-                                                                    className={`mr-3 ${isActive(child.href)
-                                                                            ? 'text-indigo-600'
-                                                                            : 'text-gray-500'
-                                                                        }`}
-                                                                >
-                                                                    {child.icon}
-                                                                </span>
-                                                            ) : (
-                                                                <span
-                                                                    className={`w-1.5 h-1.5 mr-3 rounded-full ${isActive(child.href) ? 'bg-indigo-600' : 'bg-gray-400'
-                                                                        }`}
-                                                                />
-                                                            )}
-                                                            {child.name}
-                                                        </Link>
-                                                    ))}
-                                                </motion.div>
-                                            )}
-                                        </AnimatePresence>
-                                    )}
-                                </>
-                            ) : (
-                                <Link
-                                    to={item.href || '#'}
-                                    className={`flex items-center px-3 py-2.5 text-sm font-medium rounded-lg hover:bg-gray-500 hover:bg-opacity-30 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors duration-200 ${isActive(item.href || '') ? 'text-white bg-indigo-50' : 'text-white'
-                                        } ${isCollapsed ? 'justify-center' : 'space-x-3'}`}
-                                    aria-label={item.name}
-                                >
-                                    <span
-                                        className={`${isActive(item.href || '') ? 'text-white bg-gray-500 bg-opacity-30' : 'text-white'
-                                            }`}
-                                    >
-                                        {item.icon}
-                                    </span>
-                                    {!isCollapsed && <span>{item.name}</span>}
-                                </Link>
-                            )}
-                        </div>
-                    ))}
-                </nav>
-            </div>
+                                    </AnimatePresence>
+                                )}
+                            </>
+                        ) : (
+                            <Link
+                                to={item.href || '#'}
+                                className={`
+                  flex items-center px-3 py-2.5 text-sm font-medium rounded-lg 
+                  transition-colors duration-200
+                  focus:outline-none focus:ring-2 focus:ring-indigo-500
+                  ${isActive(item.href || '') ? 'bg-indigo-600 text-white' : 'text-gray-200 hover:bg-gray-700 hover:text-white'}
+                  ${isCollapsed ? 'justify-center' : 'space-x-3'}
+                `}
+                                aria-label={item.name}
+                            >
+                                <span className={isActive(item.href || '') ? 'text-white' : 'text-gray-300'}>
+                                    {item.icon}
+                                </span>
+                                {!isCollapsed && <span>{item.name}</span>}
+                            </Link>
+                        )}
+                    </div>
+                ))}
+            </nav>
 
             {/* User Profile */}
-            <div className="p-4 bg-transparent">
+            <div className="p-4 border-t border-gray-700 dark:border-gray-800">
                 <motion.div
                     className="flex items-center justify-between"
                     initial={{ opacity: isCollapsed ? 0 : 1 }}
@@ -267,19 +281,19 @@ const Sidebar: React.FC<SidebarProps> = memo(({ isCollapsed }) => {
                         <>
                             <div className="flex items-center space-x-3">
                                 <img
-                                    className="w-9 h-9 rounded-full object-cover"
+                                    className="w-10 h-10 rounded-full object-cover"
                                     src="/src/assets/images/oceans.jpg"
                                     alt="User profile"
                                     loading="lazy"
                                 />
                                 <div>
                                     <p className="text-sm font-medium text-white">John Smith</p>
-                                    <p className="text-xs text-white">Admin</p>
+                                    <p className="text-xs text-gray-300">Admin</p>
                                 </div>
                             </div>
                             <Link
-                                to="/"
-                                className="p-1.5 rounded-lg hover:bg-gray-100 text-white hover:text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors duration-200"
+                                to="/logout"
+                                className="p-2 rounded-lg hover:bg-gray-700 text-gray-300 hover:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors duration-200"
                                 aria-label="Sign out"
                             >
                                 <FaSignOutAlt size={18} />
@@ -287,13 +301,13 @@ const Sidebar: React.FC<SidebarProps> = memo(({ isCollapsed }) => {
                         </>
                     ) : (
                         <motion.div
-                            className="flex justify-center bg-transparent"
+                            className="flex justify-center"
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
                             transition={{ duration: 0.2 }}
                         >
                             <img
-                                className="w-9 h-9 rounded-full object-cover"
+                                className="w-10 h-10 rounded-full object-cover"
                                 src="/src/assets/images/oceans.jpg"
                                 alt="User profile"
                                 loading="lazy"
@@ -306,7 +320,6 @@ const Sidebar: React.FC<SidebarProps> = memo(({ isCollapsed }) => {
     );
 });
 
-// Add display name for better debugging
 Sidebar.displayName = 'Sidebar';
 
 export default Sidebar;
