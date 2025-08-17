@@ -166,4 +166,7 @@ export interface SubmitButtonProps {
     isSubmitting?: boolean;
     className?: string;
     disabled?: boolean;
+    method?: () => void;
+    loadingIcon?: React.ReactNode; // Allow custom loading icon
+    ariaLabel?: string; // Improve accessibility
 }
