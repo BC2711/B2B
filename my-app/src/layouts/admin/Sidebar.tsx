@@ -56,17 +56,17 @@ const Sidebar: React.FC<SidebarProps> = memo(({ isCollapsed }) => {
             icon: <FaShoppingCart size={18} />,
             children: [
                 { name: 'All Orders', href: '/admin/orders' },
-                { name: 'Pending', href: '/admin/orders/pending' },
-                { name: 'Completed', href: '/admin/orders/completed' },
+                { name: 'Pending', href: '/admin/pending' },
+                { name: 'Completed', href: '/admin/completed' },
             ],
         },
         {
             name: 'Inventory',
             icon: <FaWarehouse size={18} />,
             children: [
-                { name: 'Products', href: '/admin/inventory', icon: <FaProductHunt size={18} /> },
-                { name: 'Categories', href: '/admin/inventory/categories',icon: <FaCat size={18} /> },
-                { name: 'Stock Alerts', href: '/admin/inventory/alerts',icon: <AiFillAlert size={18} /> },
+                { name: 'Products', href: '/admin/products', icon: <FaProductHunt size={18} /> },
+                { name: 'Categories', href: '/admin/categories',icon: <FaCat size={18} /> },
+                { name: 'Stock Alerts', href: '/admin/stock-alerts',icon: <AiFillAlert size={18} /> },
             ],
         },
         {
@@ -74,15 +74,15 @@ const Sidebar: React.FC<SidebarProps> = memo(({ isCollapsed }) => {
             icon: <FaUsers size={18} />,
             children: [
                 { name: 'Customer List', href: '/admin/customers' },
-                { name: 'Groups', href: '/admin/customers/groups' },
+                { name: 'Groups', href: '/admin/groups' },
             ],
         },
         {
             name: 'Reports',
             icon: <FaChartBar size={18} />,
             children: [
-                { name: 'Sales', href: '/admin/reports/sales' },
-                { name: 'Inventory', href: '/admin/reports/inventory' },
+                { name: 'Sales', href: '/admin/sales' },
+                { name: 'Inventory', href: '/admin/inventory' },
             ],
         },
         {

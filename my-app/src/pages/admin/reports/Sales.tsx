@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import type { LowStockItem, StatCard, TopCustomer, TopProduct } from '../../../types/InterfaceTypes';
 
-const Reports: React.FC = () => {
+const Sales: React.FC = () => {
     const [activeTab, setActiveTab] = useState<'sales' | 'inventory' | 'customers'>('sales');
     const [timeRange, setTimeRange] = useState<'monthly' | 'quarterly'>('quarterly');
 
@@ -431,4 +431,4 @@ const Reports: React.FC = () => {
     );
 };
 
-export default Reports;
+export default Sales;
