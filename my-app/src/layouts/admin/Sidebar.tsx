@@ -1,4 +1,4 @@
-import React, { useState, useCallback, memo } from 'react';
+import React, { useState, useCallback, memo, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -12,6 +12,8 @@ import {
     FaBoxes,
     FaSignOutAlt,
     FaChevronDown,
+    FaChevronUp,
+    FaBars,
 } from 'react-icons/fa';
 import { AiFillAlert } from 'react-icons/ai';
 
@@ -31,13 +33,16 @@ interface NavItem {
 
 interface SidebarProps {
     isCollapsed: boolean;
-    onToggle?: () => void; // Optional callback for toggling sidebar
+    onToggle?: () => void;
+    isMobile?: boolean;
 }
 
 // Animation variants for sidebar
 const sidebarVariants = {
     expanded: { width: 256 },
     collapsed: { width: 80 },
+    mobileExpanded: { width: '100%' },
+    mobileCollapsed: { width: 0 },
 };
 
 // Animation variants for submenus
@@ -47,7 +52,7 @@ const submenuVariants = {
     exit: { height: 0, opacity: 0, transition: { duration: 0.2, ease: 'easeInOut' } },
 };
 
-const Sidebar: React.FC<SidebarProps> = memo(({ isCollapsed, onToggle }) => {
+const Sidebar: React.FC<SidebarProps> = memo(({ isCollapsed, onToggle, isMobile = false }) => {
     const location = useLocation();
     const [expandedMenus, setExpandedMenus] = useState<Record<string, boolean>>({
         orders: false,
@@ -56,6 +61,19 @@ const Sidebar: React.FC<SidebarProps> = memo(({ isCollapsed, onToggle }) => {
         reports: false,
         settings: false,
     });
+
+    // Close all submenus when sidebar is collapsed
+    useEffect(() => {
+        if (isCollapsed) {
+            setExpandedMenus({
+                orders: false,
+                inventory: false,
+                customers: false,
+                reports: false,
+                settings: false,
+            });
+        }
+    }, [isCollapsed]);
 
     // Navigation items
     const navItems: NavItem[] = [
@@ -129,25 +147,33 @@ const Sidebar: React.FC<SidebarProps> = memo(({ isCollapsed, onToggle }) => {
         [location.pathname],
     );
 
+    // Determine sidebar variant based on mobile state and collapse state
+    const getSidebarVariant = () => {
+        if (isMobile) {
+            return isCollapsed ? 'mobileCollapsed' : 'mobileExpanded';
+        }
+        return isCollapsed ? 'collapsed' : 'expanded';
+    };
+
     return (
         <motion.div
-            className="flex flex-col h-screen bg-transparent text-white shadow-lg"
+            className={`flex flex-col h-screen bg-transparent-900 text-white ${isMobile ? 'fixed inset-y-0 z-50' : ''}`}
             variants={sidebarVariants}
-            initial={isCollapsed ? 'collapsed' : 'expanded'}
-            animate={isCollapsed ? 'collapsed' : 'expanded'}
+            initial={getSidebarVariant()}
+            animate={getSidebarVariant()}
             transition={{ duration: 0.3, ease: 'easeInOut' }}
             role="navigation"
             aria-label="Admin sidebar"
         >
             {/* Logo and Collapse Button */}
-            <div className="flex items-center justify-between h-16 px-4 bg-transparent">
+            <div className="flex items-center justify-between h-16 px-4 bg-transparent-800">
                 <motion.div
                     className="flex items-center"
                     initial={{ opacity: isCollapsed ? 0 : 1, x: isCollapsed ? -20 : 0 }}
                     animate={{ opacity: isCollapsed ? 0 : 1, x: isCollapsed ? -20 : 0 }}
                     transition={{ duration: 0.2 }}
                 >
-                    <FaBoxes size={24} className="text-indigo-400" />
+                    <FaBoxes size={24} color="indigo" />
                     {!isCollapsed && (
                         <span className="ml-3 text-xl font-semibold text-white">WholesalePro</span>
                     )}
@@ -158,16 +184,19 @@ const Sidebar: React.FC<SidebarProps> = memo(({ isCollapsed, onToggle }) => {
                         className="p-2 rounded-lg hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                         aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
                     >
-                        <FaChevronDown
-                            size={16}
-                            className={`text-white transition-transform ${isCollapsed ? 'rotate-90' : '-rotate-90'}`}
-                        />
+                        {isMobile ? (
+                            <FaBars size={16} color="white" />
+                        ) : isCollapsed ? (''
+                            // <FaChevronDown size={16} color="white" />
+                        ) : (''
+                            // <FaChevronUp size={16} color="white" />
+                        )}
                     </button>
                 )}
             </div>
 
             {/* Navigation */}
-            <nav className="flex-1 px-2 py-4 overflow-y-auto space-y-1" aria-label="Sidebar navigation">
+            <nav className="flex-1 px-2 py-4 overflow-y-auto scrollbar-hide space-y-1" aria-label="Sidebar navigation">
                 {navItems.map((item) => (
                     <div key={item.name} className="space-y-1">
                         {item.children ? (
@@ -175,14 +204,14 @@ const Sidebar: React.FC<SidebarProps> = memo(({ isCollapsed, onToggle }) => {
                                 <button
                                     onClick={() => toggleMenu(item.name)}
                                     className={`
-                    flex items-center w-full px-3 py-2.5 text-sm font-medium rounded-lg 
-                    transition-colors duration-200
-                    focus:outline-none focus:ring-2 focus:ring-indigo-500
-                    ${isActive(item.href || '', item.children)
+                                        flex items-center w-full px-3 py-2.5 text-sm font-medium rounded-lg 
+                                        transition-colors duration-200
+                                        focus:outline-none focus:ring-2 focus:ring-indigo-500
+                                        ${isActive(item.href || '', item.children)
                                             ? 'bg-indigo-600 text-white'
                                             : 'text-gray-200 hover:bg-gray-700 hover:text-white'}
-                    ${isCollapsed ? 'justify-center' : 'justify-between'}
-                  `}
+                                        ${isCollapsed ? 'justify-center' : 'justify-between'}
+                                    `}
                                     aria-expanded={expandedMenus[item.name.toLowerCase()]}
                                     aria-label={`${item.name} menu`}
                                 >
@@ -199,11 +228,11 @@ const Sidebar: React.FC<SidebarProps> = memo(({ isCollapsed, onToggle }) => {
                                             animate={{ rotate: expandedMenus[item.name.toLowerCase()] ? 180 : 0 }}
                                             transition={{ duration: 0.2 }}
                                         >
-                                            <FaChevronDown size={12} className="text-gray-300" />
+                                            <FaChevronDown size={12} color="gray" />
                                         </motion.div>
                                     )}
                                 </button>
-                                {!isCollapsed && (
+                                {(!isCollapsed || isMobile) && (
                                     <AnimatePresence>
                                         {expandedMenus[item.name.toLowerCase()] && (
                                             <motion.div
@@ -211,21 +240,22 @@ const Sidebar: React.FC<SidebarProps> = memo(({ isCollapsed, onToggle }) => {
                                                 initial="hidden"
                                                 animate="visible"
                                                 exit="exit"
-                                                className="pl-8 space-y-1"
+                                                className={`${isCollapsed ? 'pl-2' : 'pl-8'} space-y-1`}
                                             >
                                                 {item.children.map((child) => (
                                                     <Link
                                                         key={child.name}
                                                         to={child.href}
                                                         className={`
-                              flex items-center px-3 py-2 text-sm rounded-lg 
-                              transition-colors duration-200
-                              focus:outline-none focus:ring-2 focus:ring-indigo-500
-                              ${isActive(child.href)
+                                                            flex items-center px-3 py-2 text-sm rounded-lg 
+                                                            transition-colors duration-200
+                                                            focus:outline-none focus:ring-2 focus:ring-indigo-500
+                                                            ${isActive(child.href)
                                                                 ? 'text-white bg-indigo-500'
                                                                 : 'text-gray-300 hover:bg-gray-700 hover:text-white'}
-                            `}
+                                                        `}
                                                         aria-label={child.name}
+                                                        onClick={() => isMobile && onToggle && onToggle()}
                                                     >
                                                         {child.icon ? (
                                                             <span
@@ -239,7 +269,7 @@ const Sidebar: React.FC<SidebarProps> = memo(({ isCollapsed, onToggle }) => {
                                                                     }`}
                                                             />
                                                         )}
-                                                        {child.name}
+                                                        {(!isCollapsed || isMobile) && child.name}
                                                     </Link>
                                                 ))}
                                             </motion.div>
@@ -251,18 +281,19 @@ const Sidebar: React.FC<SidebarProps> = memo(({ isCollapsed, onToggle }) => {
                             <Link
                                 to={item.href || '#'}
                                 className={`
-                  flex items-center px-3 py-2.5 text-sm font-medium rounded-lg 
-                  transition-colors duration-200
-                  focus:outline-none focus:ring-2 focus:ring-indigo-500
-                  ${isActive(item.href || '') ? 'bg-indigo-600 text-white' : 'text-gray-200 hover:bg-gray-700 hover:text-white'}
-                  ${isCollapsed ? 'justify-center' : 'space-x-3'}
-                `}
+                                    flex items-center px-3 py-2.5 text-sm font-medium rounded-lg 
+                                    transition-colors duration-200
+                                    focus:outline-none focus:ring-2 focus:ring-indigo-500
+                                    ${isActive(item.href || '') ? 'bg-indigo-600 text-white' : 'text-gray-200 hover:bg-gray-700 hover:text-white'}
+                                    ${isCollapsed ? 'justify-center' : 'space-x-3'}
+                                `}
                                 aria-label={item.name}
+                                onClick={() => isMobile && onToggle && onToggle()}
                             >
                                 <span className={isActive(item.href || '') ? 'text-white' : 'text-gray-300'}>
                                     {item.icon}
                                 </span>
-                                {!isCollapsed && <span>{item.name}</span>}
+                                {(!isCollapsed || isMobile) && <span>{item.name}</span>}
                             </Link>
                         )}
                     </div>
@@ -270,14 +301,14 @@ const Sidebar: React.FC<SidebarProps> = memo(({ isCollapsed, onToggle }) => {
             </nav>
 
             {/* User Profile */}
-            <div className="p-4 border-t border-gray-700 dark:border-gray-800">
+            <div className="p-4 bg-transparent-800">
                 <motion.div
                     className="flex items-center justify-between"
-                    initial={{ opacity: isCollapsed ? 0 : 1 }}
-                    animate={{ opacity: isCollapsed ? 0 : 1 }}
+                    initial={{ opacity: isCollapsed && !isMobile ? 0 : 1 }}
+                    animate={{ opacity: isCollapsed && !isMobile ? 0 : 1 }}
                     transition={{ duration: 0.2 }}
                 >
-                    {!isCollapsed ? (
+                    {(!isCollapsed || isMobile) ? (
                         <>
                             <div className="flex items-center space-x-3">
                                 <img

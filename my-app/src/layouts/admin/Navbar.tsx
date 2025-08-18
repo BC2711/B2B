@@ -1,6 +1,8 @@
 import React, { useState, useCallback, memo, useRef, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
+import { FaBars, FaBell, FaEnvelope, FaExclamationTriangle, FaSearch, FaShoppingCart, FaSignOutAlt, FaUserCog } from 'react-icons/fa';
+import { HiChevronLeft, HiChevronRight } from 'react-icons/hi';
 
 // Define types
 interface NavbarNotification {
@@ -8,7 +10,7 @@ interface NavbarNotification {
     message: string;
     read: boolean;
     time: string;
-    icon: string;
+    icon: React.ReactNode;
     iconColor: string;
 }
 
@@ -18,11 +20,13 @@ interface NavbarMessage {
     content: string;
     time: string;
     read: boolean;
+    avatar: string;
 }
 
 interface NavbarProps {
     isCollapsed: boolean;
     toggleSidebar: () => void;
+    isMobile?: boolean;
 }
 
 // Custom hook for handling click outside
@@ -45,62 +49,46 @@ const dropdownVariants = {
     exit: { opacity: 0, y: -10, transition: { duration: 0.15, ease: 'easeIn' } },
 };
 
-// Sample data (replace with API in production)
-const notifications: NavbarNotification[] = [
-    {
-        id: 1,
-        message: 'New order received from Global Suppliers',
-        read: false,
-        time: '5 min ago',
-        icon: 'fas fa-shopping-cart',
-        iconColor: 'text-blue-500',
-    },
-    {
-        id: 2,
-        message: 'Inventory low on Bluetooth Speakers',
-        read: true,
-        time: '2 hours ago',
-        icon: 'fas fa-exclamation-triangle',
-        iconColor: 'text-yellow-500',
-    },
-    {
-        id: 3,
-        message: 'New message from Sarah Williams',
-        read: false,
-        time: '1 day ago',
-        icon: 'fas fa-envelope',
-        iconColor: 'text-green-500',
-    },
-];
-
-const messages: NavbarMessage[] = [
-    {
-        id: 1,
-        sender: 'Sarah Williams',
-        content: 'Can we discuss the new inventory system?',
-        time: '1 hour ago',
-        read: false,
-    },
-    {
-        id: 2,
-        sender: 'John Smith',
-        content: 'Please review the latest order details.',
-        time: '3 hours ago',
-        read: true,
-    },
-];
-
-const Navbar: React.FC<NavbarProps> = memo(({ isCollapsed, toggleSidebar }) => {
+const Navbar: React.FC<NavbarProps> = memo(({ isCollapsed, toggleSidebar, isMobile = false }) => {
     const [searchQuery, setSearchQuery] = useState('');
     const [showNotifications, setShowNotifications] = useState(false);
     const [showMessages, setShowMessages] = useState(false);
     const [showProfileMenu, setShowProfileMenu] = useState(false);
-    const [notificationList, setNotificationList] = useState(notifications);
-    const [messageList, setMessageList] = useState(messages);
 
-    const notificationsRef = useRef<HTMLElement>(null);
-    const messagesRef = useRef<HTMLElement>(null);
-    const profileMenuRef = useRef<HTMLElement>(null);
+    // Sample data
+    const [notificationList, setNotificationList] = useState<NavbarNotification[]>([
+        {
+            id: 1,
+            message: 'New order received from Global Suppliers',
+            read: false,
+            time: '5 min ago',
+            icon: <FaShoppingCart />,
+            iconColor: 'text-blue-500',
+        },
+        {
+            id: 2,
+            message: 'Inventory low on Bluetooth Speakers',
+            read: true,
+            time: '2 hours ago',
+            icon: <FaExclamationTriangle />,
+            iconColor: 'text-yellow-500',
+        }
+    ]);
+
+    const [messageList, setMessageList] = useState<NavbarMessage[]>([
+        {
+            id: 1,
+            sender: 'Sarah Williams',
+            content: 'Can we discuss the new inventory system?',
+            time: '1 hour ago',
+            read: false,
+            avatar: '/path/to/avatar1.jpg'
+        }
+    ]);
+
+    const notificationsRef = useRef<HTMLDivElement>(null);
+    const messagesRef = useRef<HTMLDivElement>(null);
+    const profileMenuRef = useRef<HTMLDivElement>(null);
 
     // Close dropdowns when clicking outside
     useClickOutside(notificationsRef, () => setShowNotifications(false));
@@ -109,160 +97,135 @@ const Navbar: React.FC<NavbarProps> = memo(({ isCollapsed, toggleSidebar }) => {
 
     // Toggle handlers
     const handleNotificationsToggle = useCallback(() => {
-        setShowNotifications((prev) => !prev);
+        setShowNotifications(prev => !prev);
         setShowMessages(false);
         setShowProfileMenu(false);
     }, []);
 
     const handleMessagesToggle = useCallback(() => {
-        setShowMessages((prev) => !prev);
+        setShowMessages(prev => !prev);
         setShowNotifications(false);
         setShowProfileMenu(false);
     }, []);
 
     const handleProfileMenuToggle = useCallback(() => {
-        setShowProfileMenu((prev) => !prev);
+        setShowProfileMenu(prev => !prev);
         setShowNotifications(false);
         setShowMessages(false);
     }, []);
 
-    // Mark notification as read
+    // Mark items as read
     const markNotificationAsRead = useCallback((id: number) => {
-        setNotificationList((prev) =>
-            prev.map((n) => (n.id === id ? { ...n, read: true } : n)),
-        );
+        setNotificationList(prev =>
+            prev.map(n => (n.id === id ? { ...n, read: true } : n)))
     }, []);
 
-    // Mark message as read
     const markMessageAsRead = useCallback((id: number) => {
-        setMessageList((prev) =>
-            prev.map((m) => (m.id === id ? { ...m, read: true } : m)),
-        );
+        setMessageList(prev =>
+            prev.map(m => (m.id === id ? { ...m, read: true } : m)))
     }, []);
-
-    // Handle search (placeholder for real search logic)
-    const handleSearch = useCallback(
-        (e: React.ChangeEvent<HTMLInputElement>) => {
-            setSearchQuery(e.target.value);
-            // Add search logic here (e.g., API call)
-            console.log('Searching for:', e.target.value);
-        },
-        [],
-    );
 
     // Calculate unread counts
-    const unreadNotifications = notificationList.filter((n) => !n.read).length;
-    const unreadMessages = messageList.filter((m) => !m.read).length;
+    const unreadNotifications = notificationList.filter(n => !n.read).length;
+    const unreadMessages = messageList.filter(m => !m.read).length;
 
     return (
-        <header
-            className="flex items-center justify-between h-16 px-4 bg-transparent text-white shadow-md"
-            role="banner"
-            aria-label="Admin navigation"
-        >
-            {/* Mobile menu button */}
-            <button
-                className="md:hidden p-2 text-gray-300 hover:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 rounded-md"
-                aria-label="Toggle sidebar menu"
-                onClick={toggleSidebar}
-            >
-                <i className="fas fa-bars text-xl" aria-hidden="true" />
-            </button>
-
-            {/* Search and Sidebar Toggle */}
-            <div className="flex items-center gap-4 flex-1 max-w-md mx-4 md:mx-6">
-                <button
-                    onClick={toggleSidebar}
-                    className="hidden md:block p-2 text-gray-300 hover:text-white rounded-lg hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors"
-                    aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-                >
-                    <svg
-                        width="24"
-                        height="24"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        className={`w-6 h-6 transition-transform ${isCollapsed ? 'rotate-180' : ''}`}
+        <header className="sticky top-0 z-10 flex items-center justify-between h-16 px-4 bg-transparent-800 text-white">
+            {/* Left side - Mobile menu and search */}
+            <div className="flex items-center space-x-4">
+                {/* Mobile menu button */}
+                {isMobile && (
+                    <button
+                        className="p-2 text-gray-300 hover:text-white rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        onClick={toggleSidebar}
+                        aria-label="Toggle sidebar"
                     >
-                        <line x1="3" y1="7" x2="21" y2="7" />
-                        <line x1="3" y1="12" x2="21" y2="12" />
-                        <line x1="3" y1="17" x2="21" y2="17" />
-                    </svg>
-                </button>
+                        <FaBars size={18} />
+                    </button>
+                )}
 
-                <div className="relative flex-1">
-                    <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-                        <i className="fas fa-search text-gray-400" aria-hidden="true" />
+                {/* Desktop sidebar toggle */}
+                {!isMobile && (
+                    <button
+                        className="p-2 text-gray-300 hover:text-white rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        onClick={toggleSidebar}
+                        aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+                    >
+                        {isCollapsed ? <HiChevronRight size={16} /> : <HiChevronLeft size={16} />}
+                    </button>
+                )}
+
+                {/* Search bar - hidden on small mobile */}
+                {!isMobile && (
+                    <div className="relative hidden sm:block">
+                        <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                            <FaSearch color="gray" />
+                        </div>
+                        <input
+                            type="text"
+                            className="w-full py-2 pl-10 pr-4 text-sm bg-gray-700 text-white rounded-lg focus:ring-2 focus:ring-indigo-500 focus:bg-gray-600 border-none transition-all"
+                            placeholder="Search..."
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            aria-label="Search"
+                        />
                     </div>
-                    <input
-                        className="w-full py-2 pl-10 pr-3 text-sm bg-gray-700 dark:bg-gray-800 text-white border-none rounded-lg focus:ring-2 focus:ring-indigo-500 focus:bg-gray-600 transition-all"
-                        placeholder="Search products or orders..."
-                        value={searchQuery}
-                        onChange={handleSearch}
-                        aria-label="Search products or orders"
-                    />
-                </div>
+                )}
             </div>
 
-            {/* Right side controls */}
+            {/* Right side - Icons and dropdowns */}
             <div className="flex items-center space-x-4">
+                {/* Mobile search button */}
+                {isMobile && (
+                    <button
+                        className="p-2 text-gray-300 hover:text-white rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        aria-label="Search"
+                    >
+                        <FaSearch size={16} />
+                    </button>
+                )}
+
                 {/* Notifications */}
-                <section ref={notificationsRef} className="relative">
+                <div className="relative" ref={notificationsRef}>
                     <button
                         className="p-2 text-gray-300 hover:text-white rounded-full hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 relative"
                         onClick={handleNotificationsToggle}
                         aria-label={`Notifications (${unreadNotifications} unread)`}
-                        aria-haspopup="true"
                         aria-expanded={showNotifications}
                     >
-                        <i className="fas fa-bell text-xl" aria-hidden="true" />
+                        <FaBell size={16} />
                         {unreadNotifications > 0 && (
-                            <span className="absolute top-0 right-0 w-3 h-3 bg-red-500 rounded-full border border-gray-800" />
+                            <span className="absolute top-0 right-0 w-2 h-2 bg-red-500 rounded-full" />
                         )}
                     </button>
 
                     <AnimatePresence>
                         {showNotifications && (
                             <motion.div
-                                className="absolute right-0 mt-2 w-80 bg-white dark:bg-gray-800 rounded-lg shadow-xl z-20 max-h-[400px] overflow-y-auto"
+                                className="absolute right-0 mt-2 w-72 bg-gray-700 rounded-lg shadow-xl z-50 max-h-96 overflow-y-auto"
                                 variants={dropdownVariants}
                                 initial="hidden"
                                 animate="visible"
                                 exit="exit"
                             >
-                                <div className="py-2">
-                                    <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-700">
-                                        <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200">
-                                            Notifications
-                                        </h3>
+                                <div className="p-2">
+                                    <div className="px-3 py-2 border-b border-gray-600">
+                                        <h3 className="text-sm font-semibold">Notifications</h3>
                                     </div>
-                                    {notificationList.length === 0 ? (
-                                        <div className="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">
-                                            No new notifications
-                                        </div>
-                                    ) : (
-                                        notificationList.map((notification) => (
+                                    {notificationList.length > 0 ? (
+                                        notificationList.map(notification => (
                                             <button
                                                 key={notification.id}
-                                                className={`w-full px-4 py-3 text-left hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors ${!notification.read ? 'bg-blue-50 dark:bg-blue-900' : ''
-                                                    }`}
+                                                className={`w-full px-3 py-2 text-left hover:bg-gray-600 transition-colors ${!notification.read ? 'bg-gray-600' : ''}`}
                                                 onClick={() => markNotificationAsRead(notification.id)}
-                                                aria-label={`Notification: ${notification.message}`}
                                             >
                                                 <div className="flex items-start">
                                                     <div className={`flex-shrink-0 ${notification.iconColor} mt-1`}>
-                                                        <i className={`${notification.icon} text-lg`} aria-hidden="true" />
+                                                        {notification.icon}
                                                     </div>
                                                     <div className="ml-3 flex-1">
-                                                        <p className="text-sm text-gray-700 dark:text-gray-200">
-                                                            {notification.message}
-                                                        </p>
-                                                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                                                            {notification.time}
-                                                        </p>
+                                                        <p className="text-sm">{notification.message}</p>
+                                                        <p className="text-xs text-gray-300 mt-1">{notification.time}</p>
                                                     </div>
                                                     {!notification.read && (
                                                         <div className="ml-2 flex-shrink-0">
@@ -272,77 +235,72 @@ const Navbar: React.FC<NavbarProps> = memo(({ isCollapsed, toggleSidebar }) => {
                                                 </div>
                                             </button>
                                         ))
+                                    ) : (
+                                        <div className="px-3 py-4 text-center text-sm text-gray-300">
+                                            No new notifications
+                                        </div>
                                     )}
-                                    <div className="px-4 py-2 border-t border-gray-200 dark:border-gray-700 text-center">
+                                    <div className="px-3 py-2 border-t border-gray-600 text-center">
                                         <Link
-                                            to="/admin/notifications"
-                                            className="text-sm font-medium text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 transition-colors"
+                                            to="/notifications"
+                                            className="text-sm text-indigo-400 hover:text-indigo-300"
                                             onClick={() => setShowNotifications(false)}
                                         >
-                                            View all notifications
+                                            View all
                                         </Link>
                                     </div>
                                 </div>
                             </motion.div>
                         )}
                     </AnimatePresence>
-                </section>
+                </div>
 
                 {/* Messages */}
-                <section ref={messagesRef} className="relative">
+                <div className="relative" ref={messagesRef}>
                     <button
                         className="p-2 text-gray-300 hover:text-white rounded-full hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 relative"
                         onClick={handleMessagesToggle}
                         aria-label={`Messages (${unreadMessages} unread)`}
-                        aria-haspopup="true"
                         aria-expanded={showMessages}
                     >
-                        <i className="fas fa-envelope text-xl" aria-hidden="true" />
+                        <FaEnvelope size={16} />
                         {unreadMessages > 0 && (
-                            <span className="absolute top-0 right-0 w-3 h-3 bg-red-500 rounded-full border border-gray-800" />
+                            <span className="absolute top-0 right-0 w-2 h-2 bg-red-500 rounded-full" />
                         )}
                     </button>
 
                     <AnimatePresence>
                         {showMessages && (
                             <motion.div
-                                className="absolute right-0 mt-2 w-80 bg-white dark:bg-gray-800 rounded-lg shadow-xl z-20 max-h-[400px] overflow-y-auto"
+                                className="absolute right-0 mt-2 w-72 bg-gray-700 rounded-lg shadow-xl z-50 max-h-96 overflow-y-auto"
                                 variants={dropdownVariants}
                                 initial="hidden"
                                 animate="visible"
                                 exit="exit"
                             >
-                                <div className="py-2">
-                                    <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-700">
-                                        <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200">Messages</h3>
+                                <div className="p-2">
+                                    <div className="px-3 py-2 border-b border-gray-600">
+                                        <h3 className="text-sm font-semibold">Messages</h3>
                                     </div>
-                                    {messageList.length === 0 ? (
-                                        <div className="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">
-                                            No new messages
-                                        </div>
-                                    ) : (
-                                        messageList.map((message) => (
+                                    {messageList.length > 0 ? (
+                                        messageList.map(message => (
                                             <button
                                                 key={message.id}
-                                                className={`w-full px-4 py-3 text-left hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors ${!message.read ? 'bg-blue-50 dark:bg-blue-900' : ''
-                                                    }`}
+                                                className={`w-full px-3 py-2 text-left hover:bg-gray-600 transition-colors ${!message.read ? 'bg-gray-600' : ''}`}
                                                 onClick={() => markMessageAsRead(message.id)}
-                                                aria-label={`Message from ${message.sender}: ${message.content}`}
                                             >
                                                 <div className="flex items-start">
-                                                    <div className="flex-shrink-0 text-green-500 mt-1">
-                                                        <i className="fas fa-envelope text-lg" aria-hidden="true" />
+                                                    <div className="flex-shrink-0">
+                                                        <img
+                                                            src={message.avatar}
+                                                            alt={message.sender}
+                                                            className="w-8 h-8 rounded-full object-cover"
+                                                        />
                                                     </div>
                                                     <div className="ml-3 flex-1">
-                                                        <p className="text-sm font-medium text-gray-800 dark:text-gray-200">
-                                                            {message.sender}
-                                                        </p>
-                                                        <p className="text-sm text-gray-700 dark:text-gray-200 truncate">
-                                                            {message.content}
-                                                        </p>
-                                                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                                                            {message.time}
-                                                        </p>
+                                                        <p className="text-sm font-medium">{message.sender}</p>
+                                                        <p className="text-sm truncate">{message.content}</p>
+                                                        <p className="text-xs text-gray-300 mt-1">{message.time}</p>
                                                     </div>
                                                     {!message.read && (
                                                         <div className="ml-2 flex-shrink-0">
@@ -352,82 +310,83 @@ const Navbar: React.FC<NavbarProps> = memo(({ isCollapsed, toggleSidebar }) => {
                                                 </div>
                                             </button>
                                         ))
+                                    ) : (
+                                        <div className="px-3 py-4 text-center text-sm text-gray-300">
+                                            No new messages
+                                        </div>
                                     )}
-                                    <div className="px-4 py-2 border-t border-gray-200 dark:border-gray-700 text-center">
+                                    <div className="px-3 py-2 border-t border-gray-600 text-center">
                                         <Link
-                                            to="/admin/messages"
-                                            className="text-sm font-medium text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 transition-colors"
+                                            to="/messages"
+                                            className="text-sm text-indigo-400 hover:text-indigo-300"
                                             onClick={() => setShowMessages(false)}
                                         >
-                                            View all messages
+                                            View all
                                         </Link>
                                     </div>
                                 </div>
                             </motion.div>
                         )}
                     </AnimatePresence>
-                </section>
+                </div>
 
-                {/* User dropdown */}
-                <section ref={profileMenuRef} className="relative">
+                {/* User profile dropdown */}
+                <div className="relative" ref={profileMenuRef}>
                     <button
-                        className="flex items-center rounded-full focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        className="flex items-center focus:outline-none focus:ring-2 focus:ring-indigo-500 rounded-full"
                         onClick={handleProfileMenuToggle}
                         aria-label="User menu"
-                        aria-haspopup="true"
                         aria-expanded={showProfileMenu}
                     >
                         <img
-                            className="w-9 h-9 rounded-full object-cover"
                             src="/src/assets/images/oceans.jpg"
                             alt="User profile"
-                            loading="lazy"
+                            className="w-8 h-8 rounded-full object-cover"
                         />
                     </button>
 
                     <AnimatePresence>
                         {showProfileMenu && (
                             <motion.div
-                                className="absolute right-0 mt-2 w-56 bg-white dark:bg-gray-800 rounded-lg shadow-xl z-20"
+                                className="absolute right-0 mt-2 w-48 bg-gray-700 rounded-lg shadow-xl z-50"
                                 variants={dropdownVariants}
                                 initial="hidden"
                                 animate="visible"
                                 exit="exit"
                             >
-                                <div className="py-2">
-                                    <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-700">
-                                        <p className="text-sm text-gray-600 dark:text-gray-400">Signed in as</p>
-                                        <p className="text-sm font-medium text-gray-900 dark:text-gray-200 truncate">
-                                            john.doe@example.com
-                                        </p>
+                                <div className="py-1">
+                                    <div className="px-4 py-2 border-b border-gray-600">
+                                        <p className="text-sm">Signed in as</p>
+                                        <p className="text-sm font-medium truncate">admin@example.com</p>
                                     </div>
                                     <Link
-                                        to="/admin/profile"
-                                        className="block px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                                        to="/profile"
+                                        className="block px-4 py-2 text-sm hover:bg-gray-600 transition-colors"
                                         onClick={() => setShowProfileMenu(false)}
                                     >
                                         Your Profile
                                     </Link>
                                     <Link
-                                        to="/admin/settings"
-                                        className="block px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                                        to="/settings"
+                                        className="block px-4 py-2 text-sm hover:bg-gray-600 transition-colors"
                                         onClick={() => setShowProfileMenu(false)}
                                     >
                                         Settings
                                     </Link>
-                                    <div className="border-t border-gray-200 dark:border-gray-700" />
+                                    <div className="border-t border-gray-600" />
                                     <Link
                                         to="/logout"
-                                        className="block px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                                        className="flex items-center px-4 py-2 text-sm hover:bg-gray-600 transition-colors"
                                         onClick={() => setShowProfileMenu(false)}
                                     >
+                                        <FaSignOutAlt />
                                         Sign out
                                     </Link>
                                 </div>
                             </motion.div>
                         )}
                     </AnimatePresence>
-                </section>
+                </div>
             </div>
         </header>
     );

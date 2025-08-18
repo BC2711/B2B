@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
 import Sidebar from '../layouts/admin/Sidebar';
 import Navbar from '../layouts/admin/Navbar';
@@ -17,9 +17,39 @@ import InventoryReport from '../pages/admin/reports/InventoryReport';
 
 const Admin: React.FC = () => {
     const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+    const [isMobile, setIsMobile] = useState(false);
+    const [showSidebar, setShowSidebar] = useState(false);
+
+    // Handle responsive behavior
+    useEffect(() => {
+        const handleResize = () => {
+            const mobile = window.innerWidth < 768;
+            setIsMobile(mobile);
+            if (mobile) {
+                setIsSidebarCollapsed(true);
+                setShowSidebar(false);
+            } else {
+                setShowSidebar(true);
+            }
+        };
+
+        handleResize(); // Initialize
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
 
     const toggleSidebar = () => {
-        setIsSidebarCollapsed(prev => !prev);
+        if (isMobile) {
+            setShowSidebar(prev => !prev);
+        } else {
+            setIsSidebarCollapsed(prev => !prev);
+        }
+    };
+
+    const closeMobileSidebar = () => {
+        if (isMobile) {
+            setShowSidebar(false);
+        }
     };
 
     // Auth check (uncomment when ready)
@@ -31,13 +61,44 @@ const Admin: React.FC = () => {
     return (
         <div className="h-screen overflow-hidden relative bgImage">
             {/* Semi-transparent overlay for better readability */}
-            {/* <div className="absolute inset-0 bg-black bg-opacity-30" /> */}
+            {isMobile && showSidebar && (
+                <div
+                    className="fixed inset-0 bg-black bg-opacity-50 z-40"
+                    onClick={closeMobileSidebar}
+                />
+            )}
 
             <div className="flex h-full relative z-10">
-                <Sidebar isCollapsed={isSidebarCollapsed} />
-                <div className="flex flex-col flex-1 overflow-hidden">
-                    <Navbar isCollapsed={isSidebarCollapsed} toggleSidebar={toggleSidebar} />
-                    <main className="flex-1 overflow-auto p-4 bg-transparent bg-opacity-90 rounded-lg">
+                {/* Sidebar with responsive behavior */}
+                <div className={`
+                    ${isMobile ? 'fixed inset-y-0 z-50' : 'relative'}
+                    ${showSidebar ? 'block' : 'hidden'}
+                    ${!isMobile ? 'block' : ''}
+                `}>
+                    <Sidebar
+                        isCollapsed={isSidebarCollapsed}
+                        onToggle={toggleSidebar}
+                        isMobile={isMobile}
+                    />
+                </div>
+
+                {/* Main content area */}
+                <div className={`
+                    flex flex-col flex-1 overflow-hidden
+                    ${isMobile && showSidebar ? 'ml-0' : ''}
+                    ${!isMobile && isSidebarCollapsed ? 'ml-0' : 'ml-0'}
+                    transition-all duration-300 ease-in-out
+                `}>
+                    <Navbar
+                        isCollapsed={isSidebarCollapsed}
+                        toggleSidebar={toggleSidebar}
+                        isMobile={isMobile}
+                    />
+
+                    <main
+                        className="flex-1 overflow-auto p-4 bg-transparent bg-opacity-90 rounded-lg"
+                        onClick={closeMobileSidebar}
+                    >
                         <Routes>
                             <Route index element={<Dashboard />} />
                             <Route path="products" element={<Products />} />
@@ -48,7 +109,6 @@ const Admin: React.FC = () => {
                             <Route path="completed" element={<Completed />} />
                             <Route path="customers" element={<Customer />} />
                             <Route path="groups" element={<Group />} />
-                            <Route path="sales" element={<Sales />} />
                             <Route path="sales" element={<Sales />} />
                             <Route path="inventory" element={<InventoryReport />} />
                             <Route path="settings" element={<Settings />} />

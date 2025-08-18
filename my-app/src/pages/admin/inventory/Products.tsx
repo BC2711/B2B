@@ -119,7 +119,7 @@ const Products: React.FC = memo(() => {
     );
 
     return (
-        <main className="flex-1 overflow-auto p-4 sm:p-6 bg-gray-500 dark:bg-gray-900 rounded-2xl transition-colors">
+        <main className="flex-1 overflow-auto p-4 sm:p-6 bg-gray-50 rounded-2xl transition-colors">
             <BreadCrumb
                 breadcrumbs={[
                     { path: '/admin', label: 'Dashboard' },
@@ -143,7 +143,7 @@ const Products: React.FC = memo(() => {
                 />
             </PageHeaders>
 
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm transition-colors">
+            <div className="bg-gray-50 rounded-lg shadow-sm transition-colors">
                 {/* Tab Navigation */}
                 <nav
                     className="flex border-b border-gray-200 dark:border-gray-700 p-3 space-x-4"
