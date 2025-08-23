@@ -5,7 +5,7 @@ import Navbar from '../layouts/admin/Navbar';
 import Dashboard from '../layouts/admin/Dashboard';
 import Products from '../pages/admin/inventory/Products';
 import Orders from '../pages/admin/orders/Orders';
-import Settings from '../pages/admin/settings/Settings';
+import Settings from '../pages/admin/settings/Account';
 import Customer from '../pages/admin/customer/Customer';
 import Categories from '../pages/admin/inventory/Categories';
 import StockAlert from '../pages/admin/inventory/StockAlert';

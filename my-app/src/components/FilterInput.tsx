@@ -1,8 +1,8 @@
 import React from 'react';
-import { FaSearch, FaTimes } from 'react-icons/fa';
+import { FaSearch } from 'react-icons/fa';
 
 interface FilterInputProps {
-    searchQuery: string;
+    searchQuery?: string;
     setSearchQuery: (query: string) => void;
     placeholder?: string;
     className?: string;
@@ -19,7 +19,7 @@ const FilterInput: React.FC<FilterInputProps> = ({
     inputClassName = '',
     autoFocus = false,
 }) => {
-    
+
 
     return (
         <div className={`relative ${className}`}>
@@ -37,7 +37,7 @@ const FilterInput: React.FC<FilterInputProps> = ({
                 autoFocus={autoFocus}
             />
 
-           
+
         </div>
     );
 };

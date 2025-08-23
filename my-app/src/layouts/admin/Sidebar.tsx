@@ -120,8 +120,8 @@ const Sidebar: React.FC<SidebarProps> = memo(({ isCollapsed, onToggle, isMobile 
             name: 'Settings',
             icon: <FaCog size={18} />,
             children: [
-                { name: 'Account', href: '/admin/settings/account' },
-                { name: 'Preferences', href: '/admin/settings/preferences' },
+                { name: 'Account', href: '/admin/account' },
+                { name: 'Preferences', href: '/admin/preferences' },
             ],
         },
     ];
