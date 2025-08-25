@@ -1,6 +1,6 @@
 from pydantic_settings import BaseSettings
 from typing import Optional
-
+from datetime import datetime, timedelta
 
 class Settings(BaseSettings):
     PROJECT_NAME: str = "B2B Platform"
@@ -12,6 +12,11 @@ class Settings(BaseSettings):
     POSTGRES_PASSWORD: str = "postgres"
     POSTGRES_DB: str = "B2B"
     POSTGRES_PORT: str = "5432"
+    
+    # JWT Configuration
+    SECRET_KEY: str = "your-secret-key-change-in-production"  # Change this!
+    ALGORITHM: str = "HS256"
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 30  # 30 minutes
 
     # Construct DATABASE_URL
     @property
