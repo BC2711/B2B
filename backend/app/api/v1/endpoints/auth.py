@@ -6,7 +6,7 @@ from app.db.session import get_db
 from app import crud
 from app.core.security import create_access_token
 from app.core.config import settings
-from app.models.schemas import Token, UserLogin
+from app.models.schemas.user import Token, UserLogin
 
 router = APIRouter(tags=["auth"])
 
