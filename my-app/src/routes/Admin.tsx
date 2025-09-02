@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Navigate, Route, Routes } from 'react-router-dom';
+import { Navigate, Route, Routes, useNavigate } from 'react-router-dom';
 import Sidebar from '../layouts/admin/Sidebar';
 import Navbar from '../layouts/admin/Navbar';
 import Dashboard from '../layouts/admin/Dashboard';
@@ -14,11 +14,14 @@ import Completed from '../pages/admin/orders/Completed';
 import Group from '../pages/admin/customer/Group';
 import Sales from '../pages/admin/reports/Sales';
 import InventoryReport from '../pages/admin/reports/InventoryReport';
+import { useAuth } from '../context/AuthContext';
 
 const Admin: React.FC = () => {
     const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
     const [isMobile, setIsMobile] = useState(false);
     const [showSidebar, setShowSidebar] = useState(false);
+    const { isAuthenticated } = useAuth();
+    const navigate = useNavigate();
 
     // Handle responsive behavior
     useEffect(() => {
@@ -52,11 +55,9 @@ const Admin: React.FC = () => {
         }
     };
 
-    // Auth check (uncomment when ready)
-    // const { authToken } = useAuth();
-    // if (!authToken) {
-    //     return <Navigate to="/auth/login" />;
-    // }
+    if (!isAuthenticated) {
+        navigate('/');
+    }
 
     return (
         <div className="h-screen overflow-hidden relative bgImage">

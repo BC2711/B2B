@@ -5,8 +5,9 @@ import PageHeaders from '../../../components/PageHeaders';
 import SubmitButton from '../../../components/buttons/SubmitButton';
 import FilterInput from '../../../components/FilterInput';
 import { motion, AnimatePresence } from 'framer-motion';
-import { tabVariants } from '../../../types/InterfaceTypes';
+import { tabVariants, type Order } from '../../../types/InterfaceTypes';
 import Table from '../../../components/Table';
+import { useApiQuery } from '../../../hooks/useApiQuery';
 
 
 
@@ -15,6 +16,16 @@ const Orders: React.FC = () => {
     const handleTabChange = useCallback((tab: 'orders') => {
         setActiveTab(tab);
     }, []);
+
+    const { data: response, isLoading, error } = useApiQuery<Order[]>(
+        ['orders'],
+        '/orders/orders',
+        'GET'
+    );
+
+    const ordersData = response?.data || [];
+    const columns =  Object.keys(ordersData);
+
     return (
         <main className="flex-1 overflow-auto p-4 sm:p-6 bg-gray-50 rounded-2xl transition-colors">
             <BreadCrumb
@@ -56,8 +67,8 @@ const Orders: React.FC = () => {
                                 exit="exit"
                             >
                                 <Table
-                                    columns={['Order ID', 'Customer', 'Date', 'Items', 'Total', 'Status', 'Actions']}
-                                    sortedColumnData={[]}
+                                    columns={columns}
+                                    sortedColumnData={ordersData}
                                 />
                             </motion.div>
                         )}

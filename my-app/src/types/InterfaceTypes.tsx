@@ -1,3 +1,10 @@
+export interface ApiResponse<T> {
+    data?: T; 
+    status: number;
+    message?: string;
+    detail?: string;
+}
+
 export interface User {
     id: string;
     email: string;

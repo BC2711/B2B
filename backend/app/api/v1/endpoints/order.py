@@ -17,6 +17,11 @@ def get_current_admin_user(
     return current_user
 
 
+@router.get("/orders/", response_model=list[Order])
+def get_orders(db: Session = Depends(get_db)):
+    return orders.get_all_orders(db, skip=0, limit=100)
+
+
 @router.post("/orders/", response_model=Order)
 def create_order(
     order_in: OrderCreate,

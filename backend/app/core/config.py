@@ -1,9 +1,9 @@
 from pydantic_settings import BaseSettings
-from pydantic import Field, field_validator, PostgresDsn
-from typing import Optional, Literal
-from datetime import timedelta
-import secrets
+from pydantic import Field, field_validator, ConfigDict
+from typing import List, Optional
 import warnings
+import secrets
+import json
 import os
 
 
@@ -25,20 +25,23 @@ class Settings(BaseSettings):
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
 
-    # Security Settings
-    CORS_ORIGINS: list[str] = ["http://localhost:3000", "http://localhost:8000"]
+    # CORS Configuration
+    CORS_ORIGINS: List[str] = Field(
+        default=[
+            "http://localhost:5173",
+            "http://127.0.0.1:5173",
+            "http://localhost:3000",
+            "http://127.0.0.1:3000",
+        ],
+        description="List of allowed CORS origins. Can be comma-separated string or JSON array in env var.",
+    )
 
     # Construct DATABASE_URL securely
     @property
     def DATABASE_URL(self) -> str:
         return f"postgresql+psycopg2://{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}@{self.POSTGRES_SERVER}:{self.POSTGRES_PORT}/{self.POSTGRES_DB}"
 
-    # Optional: For async support
-    # @property
-    # def ASYNC_DATABASE_URL(self) -> str:
-    #     return f"postgresql+asyncpg://{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}@{self.POSTGRES_SERVER}:{self.POSTGRES_PORT}/{self.POSTGRES_DB}"
-
-    # Field validation using the new @field_validator
+    # Field validators
     @field_validator("SECRET_KEY", mode="before")
     @classmethod
     def validate_secret_key(cls, v: str) -> str:
@@ -61,17 +64,50 @@ class Settings(BaseSettings):
 
     @field_validator("CORS_ORIGINS", mode="before")
     @classmethod
-    def validate_cors_origins(cls, v: str | list[str]) -> list[str]:
+    def validate_cors_origins(cls, v: Optional[str | List[str]]) -> List[str]:
+        print(f"Raw CORS_ORIGINS value: {v!r}")  # Debug logging
+        if v is None:
+            print("CORS_ORIGINS is None, using default")
+            return [
+                "http://localhost:5173",
+                "http://127.0.0.1:5173",
+                "http://localhost:3000",
+                "http://127.0.0.1:3000",
+            ]
         if isinstance(v, str):
-            # Handle comma-separated string from env var
-            return [origin.strip() for origin in v.split(",") if origin.strip()]
-        return v
+            if not v.strip():
+                print("CORS_ORIGINS is empty string, using default")
+                return [
+                    "http://localhost:5173",
+                    "http://127.0.0.1:5173",
+                    "http://localhost:3000",
+                    "http://127.0.0.1:3000",
+                ]
+            if v.startswith("[") and v.endswith("]"):
+                try:
+                    parsed = json.loads(v)
+                    if not isinstance(parsed, list):
+                        raise ValueError("CORS_ORIGINS JSON must be a list")
+                    return parsed
+                except json.JSONDecodeError as e:
+                    print(f"JSON parsing failed: {e}")
+            # Handle comma-separated string
+            origins = [origin.strip() for origin in v.split(",") if origin.strip()]
+            if not origins:
+                raise ValueError("CORS_ORIGINS is empty after parsing")
+            return origins
+        elif isinstance(v, list):
+            return v
+        else:
+            raise ValueError(f"Invalid CORS_ORIGINS type: {type(v)}")
 
-    class Config:
-        env_file = ".env"
-        env_file_encoding = "utf-8"
-        case_sensitive = True
-        extra = "ignore"  # Ignore extra environment variables
+    model_config = ConfigDict(
+        env_file="D:/projects/B2B/backend/.env",
+        env_file_encoding="utf-8",
+        case_sensitive=True,
+        extra="ignore",
+        env_prefix="",
+    )
 
 
 # Generate a secure secret key if not provided (for development only)

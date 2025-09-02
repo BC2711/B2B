@@ -1,36 +1,39 @@
 import React from 'react';
 
 interface InputProps {
-    labelName?: string;
+    labelName: string;
     icon?: React.ComponentType<{ color?: string }>;
-    id?: string;
+    id: string; // Made required for accessibility
     name: string;
     type?: React.HTMLInputTypeAttribute;
-    value?: string;
+    value: string;
     placeholder?: string;
-    method?: (value: string) => void;
-    errors?: Record<string, string>;
+    method: (value: string) => void; // Made required
+    errors?: Record<string, string | undefined>;
     className?: string;
+    required?: boolean; // Added for accessibility
 }
 
 const Input: React.FC<InputProps> = ({
-    labelName = 'label name',
+    labelName,
     icon: Icon,
-    id = '1',
+    id,
     name,
     type = 'text',
-    value = '',
-    placeholder = 'place holder',
-    method = () => { },
+    value,
+    placeholder = '',
+    method,
     errors = {},
     className = '',
+    required = false,
 }) => {
-    const hasError = errors && errors[name];
+    const hasError = !!errors[name];
 
     return (
-        <div className={className}>
+        <div className={`mb-4 ${className}`}>
             <label htmlFor={id} className="block text-sm font-medium text-gray-700">
                 {labelName}
+                {required && <span className="text-red-500 ml-1">*</span>}
             </label>
             <div className="mt-1 relative rounded-md shadow-sm">
                 {Icon && (
@@ -45,10 +48,11 @@ const Input: React.FC<InputProps> = ({
                     placeholder={placeholder}
                     value={value}
                     onChange={(e) => method(e.target.value)}
-                    className={`py-2 ${Icon ? 'pl-10' : 'pl-3'} block w-full border ${hasError ? 'border-red-300' : 'border-gray-300'
-                        } rounded-md focus:ring-primary-500 focus:border-primary-500`}
-                    aria-invalid={hasError ? 'true' : 'false'}
+                    className={`py-2 ${Icon ? 'pl-10' : 'pl-3'} block w-full border ${hasError ? 'border-red-300 focus:ring-red-500 focus:border-red-500' : 'border-gray-300 focus:ring-primary-500 focus:border-primary-500'
+                        } rounded-md transition-colors`}
+                    aria-invalid={hasError}
                     aria-describedby={hasError ? `${id}-error` : undefined}
+                    required={required}
                 />
             </div>
             {hasError && (

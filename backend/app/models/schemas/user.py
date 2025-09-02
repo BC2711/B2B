@@ -29,16 +29,6 @@ class OrderStatus(str, Enum):
     CANCELLED = "CANCELLED"
 
 
-# Token Schemas
-class Token(BaseModel):
-    access_token: str
-    token_type: str
-
-
-class TokenData(BaseModel):
-    email: Optional[str] = None
-
-
 # User Schemas
 class UserBase(BaseModel):
     email: EmailStr
@@ -57,15 +47,6 @@ class UserBase(BaseModel):
         return v
 
 
-class UserCreate(UserBase):
-    password: Annotated[str, StringConstraints(min_length=8)]
-
-
-class UserLogin(BaseModel):
-    email: EmailStr
-    password: Annotated[str, StringConstraints(min_length=8)]
-
-
 class User(UserBase):
     id: int
     status: UserStatus = UserStatus.PENDING
@@ -75,3 +56,23 @@ class User(UserBase):
 
     class Config:
         from_attributes = True
+
+
+# Token Schemas
+class Token(BaseModel):
+    access_token: str
+    token_type: str
+    data: Optional[User] = None
+
+
+class TokenData(BaseModel):
+    email: Optional[str] = None
+
+
+class UserCreate(UserBase):
+    password: Annotated[str, StringConstraints(min_length=8)]
+
+
+class UserLogin(BaseModel):
+    email: EmailStr
+    password: Annotated[str, StringConstraints(min_length=8)]

@@ -1,8 +1,11 @@
 import React, { useState, useCallback, memo, useRef, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FaBars, FaBell, FaEnvelope, FaExclamationTriangle, FaSearch, FaShoppingCart, FaSignOutAlt, FaUserCog } from 'react-icons/fa';
 import { HiChevronLeft, HiChevronRight } from 'react-icons/hi';
+import { useAuth } from '../../context/AuthContext';
+import { useApiMutation } from '../../hooks/useApiMutation';
+import { toast } from 'react-toastify';
 
 // Define types
 interface NavbarNotification {
@@ -54,6 +57,30 @@ const Navbar: React.FC<NavbarProps> = memo(({ isCollapsed, toggleSidebar, isMobi
     const [showNotifications, setShowNotifications] = useState(false);
     const [showMessages, setShowMessages] = useState(false);
     const [showProfileMenu, setShowProfileMenu] = useState(false);
+    const navigate = useNavigate();
+    const { user, logout, isAuthenticated } = useAuth();
+
+    const { mutate } = useApiMutation<void, void>(
+        'auth/logout',
+        'POST',
+        {
+            onSuccess: () => {
+                logout();
+                if (!isAuthenticated) {
+                    toast.success('Successfully logged out');
+                    navigate('/');
+                }
+
+            },
+            onError: (error) => {
+                toast.error(error.message || 'Failed to logout');
+            },
+        }
+    );
+
+    const handleLogout = useCallback(() => {
+        mutate();
+    }, [mutate]);
 
     // Sample data
     const [notificationList, setNotificationList] = useState<NavbarNotification[]>([
@@ -357,7 +384,7 @@ const Navbar: React.FC<NavbarProps> = memo(({ isCollapsed, toggleSidebar, isMobi
                                 <div className="py-1">
                                     <div className="px-4 py-2 border-b border-gray-600">
                                         <p className="text-sm">Signed in as</p>
-                                        <p className="text-sm font-medium truncate">admin@example.com</p>
+                                        <p className="text-sm font-medium truncate">{user.email}</p>
                                     </div>
                                     <Link
                                         to="/profile"
@@ -375,9 +402,8 @@ const Navbar: React.FC<NavbarProps> = memo(({ isCollapsed, toggleSidebar, isMobi
                                     </Link>
                                     <div className="border-t border-gray-600" />
                                     <Link
-                                        to="/logout"
                                         className="flex items-center px-4 py-2 text-sm hover:bg-gray-600 transition-colors"
-                                        onClick={() => setShowProfileMenu(false)}
+                                        onClick={() => handleLogout()}
                                     >
                                         <FaSignOutAlt />
                                         Sign out
